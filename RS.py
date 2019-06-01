@@ -4,6 +4,12 @@ import socketserver
 import datetime
 import time
 
+def agent():
+    while True:
+        time.sleep(5)
+        linkedRFCServers.walkList()
+
+
 class Node():
 
     def __init__(self, pier_name, hostname, port, cookie):
@@ -51,6 +57,7 @@ class LinkedList():
                     n.status = 'active'
                     n.TTL = datetime.datetime.now() + datetime.timedelta(0, 7200)
                     n.reg_num += 1
+                    n.reg_time = datetime.datetime.now()
                     return (n.TTL, n.reg_num)
                 n = n.next
 
@@ -67,7 +74,6 @@ class LinkedList():
                     return (n.TTL, n.status)
                 n = n.next
 
-
     def addRFCEnd(self, pier_name, hostname, port, cookie):
         '''
         Adds a RFC server to the end of the linked list
@@ -81,16 +87,31 @@ class LinkedList():
             n = n.next
         n.next = newNode
 
+    def pqueryRFC(self, cookie):
+        if self.startNode is None:
+            return None
+        else:
+            n = self.startNode
+            pier_list = []
+            while n is not None:
+                if int((n.TTL - datetime.datetime.now()).total_seconds()) > 0 and n.status == 'active':# and cookie != n.cookie:
+                    pier_list.append('\n{}-{}-{}\n'.format(n.pier_name, n.hostname, n.port))
+                n = n.next
+            return pier_list
+
 
 class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
 
     def handle(self):
+        '''
+        Function responsible for handling the incoming client requests
+        '''
         data = self.request.recv(1024).decode()
         parsed = data.split()
         print(data)
 
 
-        #This block handles the clients REGISTER request.
+        #This block handles the clients REGISTER request.-----------------------
 
         if parsed[0] == 'REGISTER':
             # For a server who does not yet have a cookie
@@ -107,9 +128,10 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
                 trans_string = 'REGISTER {} OK\nCOOKIE {}\nTTL {}\nREG-NUM {}\n'.format(parsed[1], str(parsed[-1]), str((reRegInfo[0]-datetime.datetime.now()).total_seconds()), reRegInfo[1])
                 self.request.sendall(trans_string.encode())
 
+        #-----------------------------------------------------------------------
 
 
-        #This block will handle the clients LEAVE request.
+        #This block will handle the clients LEAVE request.----------------------
 
         elif parsed[0] == 'LEAVE':
             # If the server has no cookie they cannot leave because they have
@@ -123,15 +145,34 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
                 trans_string = 'LEAVE {} OK\nHOST {}\nPORT {}\nTTL {}\nSTATUS {}\n'.format(parsed[1], parsed[3], parsed[5], leaveInfo[0], leaveInfo[1])
                 self.request.sendall(trans_string.encode())
 
+        #-----------------------------------------------------------------------
 
 
+        # This block will handle the clients PQUERY request.--------------------
+
+        elif parsed[0] == 'PQUERY':
+            if parsed[-1] == 'None':
+                trans_string = 'PQUERY {} FAILED\nHOST {}\nPORT {}\nHOST is not registered, invoke REGISTER to query RS.'.format(parsed[1], parsed[3], parsed[5])
+                self.request.sendall(trans_string.encode())
+            else:
+                piers = linkedRFCServers.pqueryRFC(int(parsed[-1]))
+                if piers is not None:
+                    trans_string = 'PQUERY {} OK\nHOST {}\nPORT {}\nPIERS {}'.format(parsed[1], parsed[3], parsed[5], *piers)
+                else:
+                    trans_string = 'PQUERY {} OK\nHOST {}\nPORT {}\n{}'.format(parsed[1], parsed[3], parsed[5], 'No piers active')
+
+                self.request.sendall(trans_string.encode())
+
+        #-----------------------------------------------------------------------
 
 
+        # This block will handle the clients KEEPALIVE request.-----------------
 
-def agent():
-    while True:
-        time.sleep(5)
-        linkedRFCServers.walkList()
+        elif parsed[0] == 'KEEPALIVE':
+            pass
+
+        #-----------------------------------------------------------------------
+
 
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):

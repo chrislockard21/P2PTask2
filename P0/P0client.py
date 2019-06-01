@@ -14,7 +14,6 @@ pier = 'P0'
 
 filename = 'cookieFile.txt'
 
-    # print(cookie)
 
 def openCookie(filename):
     if not os.path.isfile(filename):
@@ -67,10 +66,27 @@ def PQUERY(host, ip, hostname, port, pier, filename):
     '''
     Function that initiates a query of all registered and active piers
     '''
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.connect((host, ip))
+        cookie = openCookie(filename)
+        trans_string = "PQUERY {}\nHOST {}\nPORT {}\nCOOKIE {}".format(pier, hostname, port, cookie)
+        sock.sendall(trans_string.encode())
+        response = sock.recv(1024).decode()
+        print(response)
+        sock.close()
+
+
+def KEEPALIVE(host, ip, hostname, port, pier, filename):
+    '''
+    Function to tell the RS to reset TTL and status
+    '''
     pass
 
-REGISTER(RSHost, RSPort, hostname, port, pier, filename)
-time.sleep(2)
-LEAVE(RSHost, RSPort, hostname, port, pier, filename)
-time.sleep(2)
-REGISTER(RSHost, RSPort, hostname, port, pier, filename)
+
+# Tests:
+
+# REGISTER(RSHost, RSPort, hostname, port, pier, filename)
+# time.sleep(2)
+# LEAVE(RSHost, RSPort, hostname, port, pier, filename)
+# time.sleep(2)
+# PQUERY(RSHost, RSPort, hostname, port, pier, filename)
