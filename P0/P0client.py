@@ -1,45 +1,76 @@
 import socket
 import os
-import json
 import datetime
+import time
 
 RSHost = "localhost"
 RSPort = 9999
-hostname = socket.gethostbyname(socket.gethostname())
+try:
+    hostname = socket.gethostbyname(socket.gethostname())
+except:
+    hostname = 'localhost'
 port = 6666
-peer = 'P0'
+pier = 'P0'
 
 filename = 'cookieFile.txt'
-if not os.path.isfile(filename):
-    cookie = 'None'
-else:
-    file = open(filename, 'r')
-    cookie = file.read()
-    file.close()
+
     # print(cookie)
 
-def REGISTER(host, ip, hostname, port, peer, cookie):
+def openCookie(filename):
+    if not os.path.isfile(filename):
+        cookie = 'None'
+    else:
+        file = open(filename, 'r')
+        cookie = file.read()
+        file.close()
+    return cookie
+
+
+def REGISTER(host, ip, hostname, port, pier, filename):
     '''
     Client connection to register the RFC with the RS server
     '''
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.connect((host, ip))
-        trans_string = f"REGISTER {peer}\nHost {hostname}\nPort {port}\nCookie {str(cookie)}"
+        cookie = openCookie(filename)
+        trans_string = "REGISTER {}\nHost {}\nPort {}\nCOOKIE {}\n".format(pier, hostname, port, str(cookie))
         sock.sendall(trans_string.encode())
-        print(trans_string)
+        response = sock.recv(1024).decode()
+        print(response)
         if cookie is not 'None':
-            print('Request for extenstion granted')
+            pass
         else:
-            cookie = sock.recv(1024).decode()
+            getCookie = response.split()
+
             file = open(filename, 'w')
-            file.write(cookie)
+            file.write(getCookie[4])
             file.close()
-        
+
         sock.close()
 
-REGISTER(RSHost, RSPort, hostname, port, peer, cookie)
 
-def LEAVE(host, ip, hostname, port, peer):
+def LEAVE(host, ip, hostname, port, pier, filename):
+    '''
+    Initiates the leave process for an RFC server
+    '''
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.connect((host, ip))
-        trans_string = ''
+        cookie = openCookie(filename)
+        trans_string = "LEAVE {}\nHOST {}\nPORT {}\nCOOKIE {}\n".format(pier, hostname, port, str(cookie))
+        sock.sendall(trans_string.encode())
+        response = sock.recv(1024).decode()
+        print(response)
+        sock.close()
+
+
+def PQUERY(host, ip, hostname, port, pier, filename):
+    '''
+    Function that initiates a query of all registered and active piers
+    '''
+    pass
+
+REGISTER(RSHost, RSPort, hostname, port, pier, filename)
+time.sleep(2)
+LEAVE(RSHost, RSPort, hostname, port, pier, filename)
+time.sleep(2)
+REGISTER(RSHost, RSPort, hostname, port, pier, filename)
