@@ -71,9 +71,6 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
 
                 self.request.sendall(trans_string.encode())
 
-        elif parsed[0] == 'RFCINDEX':
-            print('got')
-
         #-----------------------------------------------------------------------
 
 

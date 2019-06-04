@@ -77,7 +77,7 @@ def PQUERY(rshost, rsport, hostname, port, pier, filename):
     return response
   
 
-def RFCINDEX(response):
+def RFCINDEX(response, hostname, port):
     '''
     This function is used to process output from PQUERY and retreive the index from all listening piers
     '''
@@ -92,7 +92,14 @@ def RFCINDEX(response):
             sock.connect((pier[1], int(pier[2])))
             trans_string = 'RFCINDEX {}\nHOST {}\nPORT {}\n'.format(pier[0], pier[1], pier[2])
             sock.sendall(trans_string.encode())
+            data = sock.recv(1024).decode()
+            
             sock.close()
+        
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sockHost:
+            sockHost.connect((hostname, port))
+            sockHost.sendall(data.encode())
+            sockHost.close()
 
 
 def KEEPALIVE(rshost, rsport, hostname, port, pier, filename):
@@ -108,4 +115,4 @@ REGISTER(RSHost, RSPort, hostname, port, pier, filename)
 time.sleep(2)
 # # LEAVE(RSHost, RSPort, hostname, port, pier, filename)
 # # time.sleep(2)
-RFCINDEX(PQUERY(RSHost, RSPort, hostname, port, pier, filename))
+RFCINDEX(PQUERY(RSHost, RSPort, hostname, port, pier, filename), hostname, port)

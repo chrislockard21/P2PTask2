@@ -36,3 +36,25 @@ class LinkedList():
         while n.next is not None:
             n = n.next
         n.next = newNode
+
+    def RFCIndex(self):
+        if self.startNode is None:
+            RFCList = 'No-List'
+            return RFCList
+        else:
+            n = self.startNode
+            RFCList = []
+            while n is not None:
+                RFCList.append('{}\t{}\t{}\t{}\t{}'.format(n.RFCNumb, n.RFCTitle, n.hostname, n.port, n.TTL))
+                n = n.next
+            return RFCList
+    
+    def walkList(self):
+        if self.startNode is None:
+            print('No RFCs to show')
+            return
+        else:
+            n = self.startNode
+            while n is not None:
+                print(n.RFCNumb, n.RFCTitle)
+                n = n.next
