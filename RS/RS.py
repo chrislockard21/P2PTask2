@@ -2,102 +2,8 @@ import socket
 import threading
 import socketserver
 import datetime
-import time
-
-def agent():
-    while True:
-        time.sleep(5)
-        linkedRFCServers.walkList()
-
-
-class Node():
-
-    def __init__(self, pier_name, hostname, port, cookie):
-        self.pier_name = pier_name
-        self.hostname = hostname
-        self.port = port
-        self.cookie = cookie
-        self.status = 'active'
-        self.TTL = datetime.datetime.now() + datetime.timedelta(0, 7200)
-        self.reg_time = datetime.datetime.now()
-        self.reg_num = 1
-        self.next = None
-
-    def __repr__(self):
-        return 'PEER-NAME {}\nHOST {}\nPORT {}\nTTL {}\nSTATUS {}'.format(self.pier_name, self.hostname, self.port, self.TTL, self.status)
-
-
-class LinkedList():
-    '''
-    LinkedList class creates a linked list and establishes methods to append
-    the list and walk it's contents.
-    '''
-    def __init__(self):
-        self.startNode = None
-        self.curr_cookie = 1
-
-    def walkList(self):
-        if self.startNode is None:
-            print('No RFCs to list')
-            return
-        else:
-            n = self.startNode
-            while n is not None:
-                print(n.__repr__(), ' ')
-                n = n.next
-
-    def reRegisterRFC(self, cookie):
-        if self.startNode is None:
-            print('No RFCs to list')
-            return
-        else:
-            n = self.startNode
-            while n is not None:
-                if cookie == n.cookie:
-                    n.status = 'active'
-                    n.TTL = datetime.datetime.now() + datetime.timedelta(0, 7200)
-                    n.reg_num += 1
-                    n.reg_time = datetime.datetime.now()
-                    return (n.TTL, n.reg_num)
-                n = n.next
-
-    def leaveRFC(self, cookie):
-        if self.startNode is None:
-            print('No RFCs to list')
-            return
-        else:
-            n = self.startNode
-            while n is not None:
-                if cookie == n.cookie:
-                    n.status = 'inactive'
-                    n.TTL = 0
-                    return (n.TTL, n.status)
-                n = n.next
-
-    def addRFCEnd(self, pier_name, hostname, port, cookie):
-        '''
-        Adds a RFC server to the end of the linked list
-        '''
-        newNode = Node(pier_name, hostname, port, cookie)
-        if self.startNode is None:
-            self.startNode = newNode
-            return
-        n = self.startNode
-        while n.next is not None:
-            n = n.next
-        n.next = newNode
-
-    def pqueryRFC(self, cookie):
-        if self.startNode is None:
-            return None
-        else:
-            n = self.startNode
-            pier_list = []
-            while n is not None:
-                if int((n.TTL - datetime.datetime.now()).total_seconds()) > 0 and n.status == 'active':# and cookie != n.cookie:
-                    pier_list.append('\n{}-{}-{}\n'.format(n.pier_name, n.hostname, n.port))
-                n = n.next
-            return pier_list
+from imports.linked import Node, LinkedList
+from imports.agent import agent
 
 
 class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
@@ -116,7 +22,7 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         if parsed[0] == 'REGISTER':
             # For a server who does not yet have a cookie
             if parsed[-1] == 'None':
-                linkedRFCServers.addRFCEnd(parsed[1], parsed[3], parsed[5], linkedRFCServers.curr_cookie)
+                linkedRFCServers.addPierEnd(parsed[1], parsed[3], parsed[5], linkedRFCServers.curr_cookie)
                 trans_string = 'REGISTER {} OK\nCOOKIE {}\nTTL {}\nREG-NUM {}\n'.format(parsed[1], linkedRFCServers.curr_cookie, str(7200), str(1))
                 self.request.sendall(trans_string.encode())
                 linkedRFCServers.curr_cookie += 1
@@ -157,11 +63,16 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
             else:
                 piers = linkedRFCServers.pqueryRFC(int(parsed[-1]))
                 if piers is not None:
-                    trans_string = 'PQUERY {} OK\nHOST {}\nPORT {}\nPIERS {}'.format(parsed[1], parsed[3], parsed[5], *piers)
+                    trans_string = 'PQUERY {} OK\nHOST {}\nPORT {}\nPIERS:'.format(parsed[1], parsed[3], parsed[5])
+                    for pier in piers:
+                        trans_string += pier
                 else:
-                    trans_string = 'PQUERY {} OK\nHOST {}\nPORT {}\n{}'.format(parsed[1], parsed[3], parsed[5], 'No piers active')
+                    trans_string = 'PQUERY {} OK\nHOST {}\nPORT {}\nPIERS\n{}'.format(parsed[1], parsed[3], parsed[5], 'No-piers-active')
 
                 self.request.sendall(trans_string.encode())
+
+        elif parsed[0] == 'RFCINDEX':
+            print('got')
 
         #-----------------------------------------------------------------------
 
@@ -174,26 +85,26 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         #-----------------------------------------------------------------------
 
 
-
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     '''
     Class to create the threaded TCP server.
     '''
     pass
 
+
 if __name__ == "__main__":
-    # port 0 means to select an arbitrary unused port
-    HOST, PORT = "localhost", 9999
+    HOST, PORT = socket.gethostbyname(socket.gethostname()), 9999
     linkedRFCServers = LinkedList()
     server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
-    current_cookie = 1
+    # Sample nodes
+    linkedRFCServers.addPierEnd('P2', socket.gethostbyname(socket.gethostname()), 9999, 2)
+    linkedRFCServers.addPierEnd('P1', socket.gethostbyname(socket.gethostname()), 9999, 3)
+    linkedRFCServers.addPierEnd('P3', socket.gethostbyname(socket.gethostname()), 9999, 4)
     ip, port = server.server_address
-
     # start a thread with the server.
     # the thread will then start one more thread for each request.
     server_thread = threading.Thread(target=server.serve_forever)
-    # agent_thread = threading.Thread(target=agent)
-    # agent_thread.start()
-    # exit the server thread when the main thread terminates
+    agent_thread = threading.Thread(target=agent, args=(linkedRFCServers,))
+    agent_thread.start()
     server_thread.daemon = False
     server_thread.start()
