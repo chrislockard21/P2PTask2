@@ -5,10 +5,6 @@ import time
 
 RSHost = socket.gethostbyname(socket.gethostname())
 RSPort = 9999
-try:
-    hostname = socket.gethostbyname(socket.gethostname())
-except:
-    hostname = 'localhost'
 port = 10000
 pier = 'P0'
 hostname = socket.gethostbyname(socket.gethostname())
@@ -32,7 +28,7 @@ def REGISTER(rshost, rsport, hostname, port, pier, filename):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.connect((rshost, rsport))
         cookie = openCookie(filename)
-        trans_string = "REGISTER {}\nHost {}\nPort {}\nCOOKIE {}\n".format(pier, hostname, port, str(cookie))
+        trans_string = "\nREGISTER {}\nHost {}\nPort {}\nCOOKIE {}\n".format(pier, hostname, port, str(cookie))
         sock.sendall(trans_string.encode())
         response = sock.recv(1024).decode()
         print(response)
@@ -55,7 +51,7 @@ def LEAVE(rshost, rsport, hostname, port, pier, filename):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.connect((rshost, rsport))
         cookie = openCookie(filename)
-        trans_string = "LEAVE {}\nHOST {}\nPORT {}\nCOOKIE {}\n".format(pier, hostname, port, str(cookie))
+        trans_string = "\nLEAVE {}\nHOST {}\nPORT {}\nCOOKIE {}\n".format(pier, hostname, port, str(cookie))
         sock.sendall(trans_string.encode())
         response = sock.recv(1024).decode()
         print(response)
@@ -69,13 +65,13 @@ def PQUERY(rshost, rsport, hostname, port, pier, filename):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.connect((rshost, rsport))
         cookie = openCookie(filename)
-        trans_string = "PQUERY {}\nHOST {}\nPORT {}\nCOOKIE {}".format(pier, hostname, port, cookie)
+        trans_string = "\nPQUERY {}\nHOST {}\nPORT {}\nCOOKIE {}\n".format(pier, hostname, port, cookie)
         sock.sendall(trans_string.encode())
         response = sock.recv(1024).decode()
         print(response)
         sock.close()
     return response
-  
+
 
 def RFCINDEX(response, hostname, port):
     '''
@@ -90,17 +86,14 @@ def RFCINDEX(response, hostname, port):
     for pier in pier_list:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             sock.connect((pier[1], int(pier[2])))
-            trans_string = 'RFCINDEX {}\nHOST {}\nPORT {}\n'.format(pier[0], pier[1], pier[2])
+            trans_string = '\nRFCINDEX {}\nHOST {}\nPORT {}\n'.format(pier[0], pier[1], pier[2])
             sock.sendall(trans_string.encode())
             data = sock.recv(1024).decode()
-            
             sock.close()
-        
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sockHost:
-            sockHost.connect((hostname, port))
-            sockHost.sendall(data.encode())
-            sockHost.close()
-
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.connect((hostname, port))
+            sock.sendall(data.encode())
+            sock.close()
 
 def KEEPALIVE(rshost, rsport, hostname, port, pier, filename):
     '''

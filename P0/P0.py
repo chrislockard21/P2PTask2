@@ -5,6 +5,7 @@ import datetime
 import time
 from imports.linked import Node, LinkedList
 import os
+import re
 
 
 class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
@@ -17,22 +18,23 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         parsed = data.split()
         print(data)
 
-        if parsed[0] == 'RFCINDEX':
+        if parsed[0] == 'RFCINDEX' and parsed[2] == 'OK':
+            splitResponse = re.split('\n', data)
+            if splitResponse[0].split()[-1] == 'OK':
+                splitRFCs = splitResponse[-1].split('|')
+                i = 0
+                while i < len(splitRFCs) - 1:
+                    linkedRFCIndex.addRFCRecordEnd(splitRFCs[i], splitRFCs[i+1], splitRFCs[i+2], splitRFCs[i+3])
+                    i += 4
+                linkedRFCIndex.walkList()
+
+        elif parsed[0] == 'RFCINDEX':
             trans_string = 'RFCINDEX {} OK\nHOST {}\nPORT {}\nRFCs\n'.format(parsed[1], parsed[3], parsed[5])
             RFC = linkedRFCIndex.RFCIndex()
             for R in RFC:
                 trans_string += R
             self.request.sendall(trans_string.encode())
 
-        elif parsed[0] == 'RFCINDEX' and parsed[2] == 'OK':
-            i = 7
-            RFCList = []
-            while i < len(parsed):
-                RFC = parsed[i].split('\t')
-                currentList = linkedRFCIndex.RFCIndex()
-                print(currentList)
-                linkedRFCIndex.addRFCRecordEnd(RFC[0], RFC[1], RFC[2], RFC[3])
-            
 
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):

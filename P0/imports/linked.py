@@ -45,10 +45,10 @@ class LinkedList():
             n = self.startNode
             RFCList = []
             while n is not None:
-                RFCList.append('{}\t{}\t{}\t{}\t{}'.format(n.RFCNumb, n.RFCTitle, n.hostname, n.port, n.TTL))
+                RFCList.append('{}|{}|{}|{}|'.format(n.RFCNumb, n.RFCTitle, n.hostname, n.port, n.TTL))
                 n = n.next
             return RFCList
-    
+
     def walkList(self):
         if self.startNode is None:
             print('No RFCs to show')

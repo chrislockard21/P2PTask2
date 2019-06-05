@@ -2,5 +2,4 @@ FROM python
 
 COPY . .
 
-RUN apt-get update;
-
+RUN apt-get update
