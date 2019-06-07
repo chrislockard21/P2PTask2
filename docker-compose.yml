@@ -1,0 +1,105 @@
+version: "3.7"
+services:
+  registrationserver:
+    networks:
+      app_net:
+        ipv4_address: 172.16.238.10
+    image: python
+    volumes:
+      - ./RS/:/var/opt
+    entrypoint:
+      - python3
+      - -u
+      - /var/opt/rs.py
+
+  peerclient1:
+    networks:
+      app_net: {}
+    depends_on:
+      - registrationserver
+    image: python
+    working_dir: /var/opt/
+    volumes:
+      - ./peer1/:/var/opt/
+    entrypoint:
+      - python3
+      - -u
+      - /var/opt/src/peer.py
+  
+  peerclient2:
+    networks:
+      app_net: {}
+    depends_on:
+      - registrationserver
+    image: python
+    working_dir: /var/opt/
+    volumes:
+      - ./peer2/:/var/opt/
+    entrypoint:
+      - python3
+      - -u
+      - /var/opt/src/peer.py
+
+  peerclient3:
+    networks:
+      app_net: {}
+    depends_on:
+      - registrationserver
+    image: python
+    working_dir: /var/opt/
+    volumes:
+      - ./peer3/:/var/opt/
+    entrypoint:
+      - python3
+      - -u
+      - /var/opt/src/peer.py
+  
+  peerclient4:
+    networks:
+      app_net: {}
+    depends_on:
+      - registrationserver
+    image: python
+    working_dir: /var/opt/
+    volumes:
+      - ./peer4/:/var/opt/
+    entrypoint:
+      - python3
+      - -u
+      - /var/opt/src/peer.py
+
+  peerclient5:
+    networks:
+      app_net: {}
+    depends_on:
+      - registrationserver
+    image: python
+    working_dir: /var/opt/
+    volumes:
+      - ./peer5/:/var/opt/
+    entrypoint:
+      - python3
+      - -u
+      - /var/opt/src/peer.py
+
+  peerclient6:
+    networks:
+      app_net: {}
+    depends_on:
+      - registrationserver
+    image: python
+    working_dir: /var/opt/
+    volumes:
+      - ./peer6/:/var/opt/
+    entrypoint:
+      - python3
+      - -u
+      - /var/opt/src/peer.py
+
+networks:
+  app_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.16.238.0/24"
+

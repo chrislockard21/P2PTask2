@@ -58,3 +58,16 @@ class LinkedList():
             while n is not None:
                 print(n.RFCNumb, n.RFCTitle)
                 n = n.next
+
+    def RFCsActive(self):
+        if self.startNode is None:
+            RFCList = 'No-List'
+            return RFCList
+        else:
+            n = self.startNode
+            RFCList = []
+            while n is not None:
+                if (n.TTL - datetime.datetime.now()).total_seconds() > 0:
+                    RFCList.append(n.RFCNumb)
+                n = n.next
+            return RFCList

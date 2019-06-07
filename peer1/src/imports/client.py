@@ -3,11 +3,11 @@ import os
 import datetime
 import time
 
-RSHost = '172.17.0.2'
+RSHost = '172.16.238.10'
 RSPort = 9999
 port = 10000
 hostname = socket.gethostbyname(socket.gethostname())
-filename = 'cookieFile.txt'
+filename = '/tmp/cookieFile.txt'
 
 
 def RSrequest(message, rshost, rsport, hostname, port, cookie):

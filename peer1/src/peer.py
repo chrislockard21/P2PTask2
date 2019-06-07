@@ -15,22 +15,27 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         '''
         data = self.request.recv(8192).decode()
         parsed = data.split()
-        print(data)
 
         hostname = parsed[2]
         port = parsed[4]
 
         if parsed[0] == 'RFCINDEX' and parsed[1] == 'OK':
-            if len(parsed) > 6:
+            if len(parsed) > 6 and parsed[-1] != 'No-List':
+                RFC_current = linkedRFCIndex.RFCsActive()
+                print(RFC_current)
                 i = 7
                 while i < len(parsed):
                     RFC = parsed[i].split('|')
-                    linkedRFCIndex.addRFCRecordEnd(RFC[0], RFC[1], RFC[2], RFC[3])
+                    if RFC[0] not in RFC_current:
+                        linkedRFCIndex.addRFCRecordEnd(RFC[0], RFC[1], RFC[2], RFC[3])
+                    else:
+                        continue
                     i += 1
 
             linkedRFCIndex.walkList()
 
         elif parsed[0] == 'RFCINDEX':
+            print(data)
             trans_string = 'RFCINDEX OK\nHOST {}\nPORT {}\nRFCs\n'.format(hostname, port)
             RFC = linkedRFCIndex.RFCIndex()
             for R in RFC:
@@ -46,24 +51,25 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
                     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                         sock.connect((RFC[2], int(RFC[3])))
                         sock.sendall(trans_string.encode())
-                        with open('/RFCs/' + RFC[0]+RFC[1], 'w') as f:
+                        with open('/var/opt/RFCs/' + RFC[0]+RFC[1], 'w') as f:
                             while True:
                                 print('receiving data...')
                                 data = sock.recv(1024).decode()
-                                print('data=%s', (data))
                                 if not data:
+                                    print('done receiving.')
                                     break
                                 # write data to a file
                                 f.write(data)
 
         elif parsed[0] == 'GETRFC':
+            print(data)
             parsed = data.split()
-            filename = '/RFCs/' + parsed[-2] + parsed[-1]
+            filename = '/var/opt/RFCs/' + parsed[-2] + parsed[-1]
             f = open(filename, 'rb')
             l = f.read(1024)
+            print('sending data...')
             while (l):
                 self.request.send(l)
-                print('Sent', l)
                 l = f.read(1024)
             f.close()
         
@@ -83,15 +89,16 @@ if __name__ == "__main__":
 
     server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
     linkedRFCIndex = LinkedList()
-    RFCPath = 'RFCs'
-    RFCfiles = [f for f in os.listdir(RFCPath) if os.path.isfile(os.path.join(RFCPath, f))]
-    for f in RFCfiles:
-        if f[:1] != '.':
-            number = f[:4]
-            title = f[4:]
-            linkedRFCIndex.addRFCRecordEnd(number, title, HOST, PORT)
+    RFCPath = '/var/opt/RFCs'
 
-    linkedRFCIndex.walkList()
+    RFCfiles = [f for f in os.listdir(RFCPath) if os.path.isfile(os.path.join(RFCPath, f))]
+    if len(RFCfiles) > 0:
+        for f in RFCfiles:
+            if f[:1] != '.':
+                number = f[:4]
+                title = f[4:]
+                linkedRFCIndex.addRFCRecordEnd(number, title, HOST, PORT)
+    
     ip, port = server.server_address
 
     # start a thread with the server.
