@@ -45,7 +45,7 @@ class LinkedList():
             n = self.startNode
             RFCList = []
             while n is not None:
-                RFCList.append('{}|{}|{}|{}|'.format(n.RFCNumb, n.RFCTitle, n.hostname, n.port, n.TTL))
+                RFCList.append('{}|{}|{}|{}\n'.format(n.RFCNumb, n.RFCTitle, n.hostname, n.port))
                 n = n.next
             return RFCList
 

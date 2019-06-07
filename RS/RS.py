@@ -16,22 +16,24 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         parsed = data.split()
         print(data)
 
-
         #This block handles the clients REGISTER request.-----------------------
+        hostname = parsed[2]
+        port = parsed[4]
+        cookie = parsed[-1]
 
         if parsed[0] == 'REGISTER':
-            # For a server who does not yet have a cookie
-            if parsed[-1] == 'None':
-                linkedRFCServers.addPierEnd(parsed[1], parsed[3], parsed[5], linkedRFCServers.curr_cookie)
-                trans_string = '\nREGISTER {} OK\nCOOKIE {}\nTTL {}\nREG-NUM {}\n'.format(parsed[1], linkedRFCServers.curr_cookie, str(7200), str(1))
+            if cookie == 'None':
+                linkedRFCServers.addPierEnd(hostname, port, linkedRFCServers.curr_cookie)
+                trans_string = 'REGISTER {} OK\nCOOKIE {}\nTTL {}\nREG-NUM {}\n'.format(hostname, linkedRFCServers.curr_cookie, str(7200), str(1))
                 self.request.sendall(trans_string.encode())
                 linkedRFCServers.curr_cookie += 1
-            # All other servers will have a cookie
+            
             else:
-                # Resets attributes for the re-registered server since TTL will be
-                # less than 0 and status will be active should a peer need to re-register
-                reRegInfo = linkedRFCServers.reRegisterRFC(int(parsed[-1]))
-                trans_string = '\nREGISTER {} OK\nCOOKIE {}\nTTL {}\nREG-NUM {}\n'.format(parsed[1], str(parsed[-1]), str((reRegInfo[0]-datetime.datetime.now()).total_seconds()), reRegInfo[1])
+                reRegInfo = linkedRFCServers.reRegisterRFC(int(cookie))
+                trans_string = 'REGISTER {} OK\nCOOKIE {}\nTTL {}\nREG-NUM {}\n'.format(
+                    hostname, str(cookie),
+                    str((reRegInfo[0]-datetime.datetime.now()).total_seconds()), reRegInfo[1]
+                )
                 self.request.sendall(trans_string.encode())
 
         #-----------------------------------------------------------------------
@@ -42,13 +44,13 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         elif parsed[0] == 'LEAVE':
             # If the server has no cookie they cannot leave because they have
             # not registered
-            if parsed[-1] == 'None':
-                trans_string = '\nLEAVE {} FAILED\nHOST {}\nPORT {}\nHOST is not registered, invoke REGISTER to register host.'.format(parsed[1], parsed[3], parsed[5])
+            if cookie == 'None':
+                trans_string = 'LEAVE FAILED\nHOST {}\nPORT {}\nHOST is not registered, invoke REGISTER to register host.'.format( parsed[3], parsed[5])
                 self.request.sendall(trans_string.encode())
             # If a cookie exists, set the status and TTL of the exiting server
             else:
-                leaveInfo = linkedRFCServers.leaveRFC(int(parsed[-1]))
-                trans_string = '\nLEAVE {} OK\nHOST {}\nPORT {}\nTTL {}\nSTATUS {}\n'.format(parsed[1], parsed[3], parsed[5], leaveInfo[0], leaveInfo[1])
+                leaveInfo = linkedRFCServers.leaveRFC(int(cookie))
+                trans_string = 'LEAVE OK\nHOST {}\nPORT {}\nTTL {}\nSTATUS {}\n'.format(hostname, port, leaveInfo[0], leaveInfo[1])
                 self.request.sendall(trans_string.encode())
 
         #-----------------------------------------------------------------------
@@ -57,17 +59,18 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         # This block will handle the clients PQUERY request.--------------------
 
         elif parsed[0] == 'PQUERY':
-            if parsed[-1] == 'None':
-                trans_string = '\nPQUERY {} FAILED\nHOST {}\nPORT {}\nHOST is not registered, invoke REGISTER to query RS.'.format(parsed[1], parsed[3], parsed[5])
+            if cookie == 'None':
+                trans_string = 'PQUERY FAILED\nHOST {}\nPORT {}\nHOST is not registered, invoke REGISTER to query RS.'.format(hostname, port)
                 self.request.sendall(trans_string.encode())
             else:
-                piers = linkedRFCServers.pqueryRFC(int(parsed[-1]))
+                piers = linkedRFCServers.pqueryRFC(int(cookie))
                 if piers is not None:
-                    trans_string = '\nPQUERY {} OK\nHOST {}\nPORT {}\nPIERS:'.format(parsed[1], parsed[3], parsed[5])
+                    trans_string = 'PQUERY OK\nHOST {}\nPORT {}\nPIERS:'.format(hostname, port)
                     for pier in piers:
                         trans_string += pier
+                    trans_string += '\n'
                 else:
-                    trans_string = '\nPQUERY {} OK\nHOST {}\nPORT {}\nPIERS\n{}'.format(parsed[1], parsed[3], parsed[5], 'No-piers-active')
+                    trans_string = 'PQUERY OK\nHOST {}\nPORT {}\nPIERS\n{}'.format(hostname, port, 'No-piers-active')
 
                 self.request.sendall(trans_string.encode())
 

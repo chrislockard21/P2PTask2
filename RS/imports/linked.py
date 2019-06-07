@@ -5,11 +5,10 @@ class Node():
     '''
     Creates a node in the linked list for the piers coming in and out of the system
     '''
-    def __init__(self, pier_name, hostname, port, cookie):
+    def __init__(self, hostname, port, cookie):
         '''
         Initializes the Node object
         '''
-        self.pier_name = pier_name
         self.hostname = hostname
         self.port = int(port)
         self.cookie = cookie
@@ -23,8 +22,8 @@ class Node():
         '''
         Visual representation of Node when printed
         '''
-        return 'PEER-NAME {}\nHOST {}\nPORT {}\nTTL {}\nSTATUS {}'.format(
-                    self.pier_name, self.hostname, str(self.port), self.TTL, self.status
+        return 'PEER\nHOST {}\nPORT {}\nTTL {}\nSTATUS {}'.format(
+                    self.hostname, str(self.port), self.TTL, self.status
                 )
                 
 
@@ -74,11 +73,11 @@ class LinkedList():
                     return (n.TTL, n.status)
                 n = n.next
 
-    def addPierEnd(self, pier_name, hostname, port, cookie):
+    def addPierEnd(self, hostname, port, cookie):
         '''
         Adds a RFC pier to the end of the linked list
         '''
-        newNode = Node(pier_name, hostname, port, cookie)
+        newNode = Node(hostname, port, cookie)
         if self.startNode is None:
             self.startNode = newNode
             return
@@ -98,6 +97,6 @@ class LinkedList():
             pier_list = []
             while n is not None:
                 if int((n.TTL - datetime.datetime.now()).total_seconds()) > 0 and n.status == 'active' and cookie != n.cookie:
-                    pier_list.append('\n{}-{}-{}'.format(n.pier_name, n.hostname, n.port))
+                    pier_list.append('\n{}-{}'.format(n.hostname, n.port))
                 n = n.next
             return pier_list
